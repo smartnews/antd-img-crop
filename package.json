@@ -1,6 +1,6 @@
 {
   "name": "antd-img-crop",
-  "version": "4.24.0",
+  "version": "4.25.13",
   "description": "An image cropper for Ant Design Upload",
   "keywords": [
     "react",
@@ -24,7 +24,8 @@
   ],
   "scripts": {
     "build": "rm -rf dist && rollup -c --configPlugin @rollup/plugin-typescript",
-    "u": "pnpm update --latest !eslint !react !react-dom !@types/react !@types/react-dom"
+    "u": "pnpm update --latest !eslint !react !react-dom !@types/react !@types/react-dom",
+    "prepare": "npm run build"
   },
   "peerDependencies": {
     "antd": ">=4.0.0",
