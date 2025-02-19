@@ -4,3 +4,4 @@ dist
 example
 index.html
 vite.config.mts
+package-lock.json
