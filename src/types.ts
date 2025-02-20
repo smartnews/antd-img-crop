@@ -1,5 +1,5 @@
 import type { ModalProps, UploadProps } from 'antd';
-import { SliderBaseProps } from 'antd/es/slider';
+import type { SliderBaseProps } from 'antd/es/slider';
 import type { ForwardedRef, MutableRefObject } from 'react';
 import type { default as Cropper, CropperProps } from 'react-easy-crop';
 import type { Area } from 'react-easy-crop/types';
