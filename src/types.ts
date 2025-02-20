@@ -1,4 +1,5 @@
 import type { ModalProps, UploadProps } from 'antd';
+import type { SliderBaseProps } from 'antd/es/slider';
 import type { ForwardedRef, MutableRefObject } from 'react';
 import type { default as Cropper, CropperProps } from 'react-easy-crop';
 import type { Area } from 'react-easy-crop/types';
@@ -15,6 +16,8 @@ export type ImgCropProps = {
   aspectSlider?: boolean;
   showReset?: boolean;
   resetText?: string;
+
+  zoomSliderProps?: SliderBaseProps,
 
   aspect?: number;
   minZoom?: number;
@@ -84,6 +87,7 @@ export type EasyCropProps = {
   Pick<
     ImgCropProps,
     | 'zoomSlider'
+    | 'zoomSliderProps'
     | 'rotationSlider'
     | 'aspectSlider'
     | 'showReset'
