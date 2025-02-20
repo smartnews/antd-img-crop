@@ -44,7 +44,6 @@ export type ImgCropProps = {
     | 'onZoomChange'
     | 'onRotationChange'
     | 'onCropComplete'
-    | 'classes'
   >;
 
   modalClassName?: string;
