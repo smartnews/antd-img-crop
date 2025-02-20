@@ -31,6 +31,8 @@ const EasyCrop = forwardRef<EasyCropRef, EasyCropProps>((props, ref) => {
     showReset,
     resetBtnText,
 
+    zoomSliderProps,
+
     modalImage,
     aspect: ASPECT_INITIAL,
     minZoom,
@@ -124,6 +126,7 @@ const EasyCrop = forwardRef<EasyCropRef, EasyCropProps>((props, ref) => {
             step={ZOOM_STEP}
             value={zoom}
             onChange={setZoom}
+            {...zoomSliderProps}
           />
           <button
             className={buttonClass}

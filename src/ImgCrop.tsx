@@ -28,6 +28,8 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
     showReset = false,
     resetText,
 
+    zoomSliderProps = {},
+
     aspect = 1,
     minZoom = 1,
     maxZoom = 3,
@@ -331,6 +333,7 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
             ref={easyCropRef}
             cropperRef={cropperRef}
             zoomSlider={zoomSlider}
+            zoomSliderProps={zoomSliderProps}
             rotationSlider={rotationSlider}
             aspectSlider={aspectSlider}
             showReset={showReset}
