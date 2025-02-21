@@ -84,7 +84,6 @@ const EasyCrop = forwardRef<EasyCropRef, EasyCropProps>((props, ref) => {
   return (
     <>
       <Cropper
-        {...cropperProps}
         ref={cropperRef}
         image={modalImage}
         crop={crop}
@@ -106,6 +105,7 @@ const EasyCrop = forwardRef<EasyCropRef, EasyCropProps>((props, ref) => {
           containerClassName: `${PREFIX}-container ![position:relative] [width:100%] [height:40vh] [&~section:first-of-type]:[margin-top:16px] [&~section:last-of-type]:[margin-bottom:16px]`,
           mediaClassName: `${PREFIX}-media`,
         }}
+        {...cropperProps}
       />
 
       {zoomSlider && (
