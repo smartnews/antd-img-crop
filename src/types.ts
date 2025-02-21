@@ -26,7 +26,7 @@ export type ImgCropProps = {
   maxAspect?: number;
   cropShape?: 'rect' | 'round';
   showGrid?: boolean;
-  cropperProps?: Omit<
+  cropperProps?: Partial<Omit<
     CropperProps,
     | 'image'
     | 'crop'
@@ -44,7 +44,7 @@ export type ImgCropProps = {
     | 'onZoomChange'
     | 'onRotationChange'
     | 'onCropComplete'
-  >;
+  >>;
 
   modalClassName?: string;
   modalTitle?: string;
