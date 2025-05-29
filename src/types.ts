@@ -1,5 +1,6 @@
 import type { ModalProps, UploadProps } from 'antd';
 import type { SliderBaseProps } from 'antd/es/slider';
+import type { RcFile } from 'antd/es/upload/interface';
 import type { ForwardedRef, MutableRefObject } from 'react';
 import type { default as Cropper, CropperProps } from 'react-easy-crop';
 import type { Area } from 'react-easy-crop/types';
@@ -100,3 +101,7 @@ export type EasyCropProps = {
   >
 > &
   Pick<ImgCropProps, 'cropperProps'> & { resetBtnText: string };
+
+export type ImgCropRef = {
+  openModalWithFile: (file: RcFile) => void;
+};
