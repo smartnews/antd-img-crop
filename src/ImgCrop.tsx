@@ -3,8 +3,7 @@ import AntModal from 'antd/es/modal';
 import AntUpload from 'antd/es/upload';
 import type { RcFile, UploadFile } from 'antd/es/upload/interface';
 import type { MouseEvent, ReactNode } from 'react';
-import { forwardRef, useCallback, useMemo, useRef, useState } from 'react';
-import type CropperRef from 'react-easy-crop';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import EasyCrop from './EasyCrop';
 import './ImgCrop.css';
 import { PREFIX, ROTATION_INITIAL } from './constants';
@@ -13,11 +12,12 @@ import type {
   BeforeUploadReturnType,
   EasyCropRef,
   ImgCropProps,
+  ImgCropRef,
 } from './types';
 
-export type { ImgCropProps } from './types';
+export type { ImgCropRef, ImgCropProps } from './types';
 
-const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
+const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const {
     quality = 0.4,
     fillColor = 'white',
@@ -327,6 +327,82 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
   const title = modalTitle || (isCN ? '编辑图片' : 'Edit image');
   const resetBtnText = resetText || (isCN ? '重置' : 'Reset');
 
+const editFile = useCallback((file: RcFile | UploadFile) => {
+  console.log('[editFile] Called with file:', file);
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    if (typeof reader.result !== 'string') return;
+
+    setModalImage(reader.result);
+    console.log('[editFile] Modal image set');
+
+    onCancel.current = () => {
+      console.log('[editFile] User cancelled crop modal');
+      setModalImage('');
+      easyCropRef.current?.onReset();
+    };
+
+    onOk.current = async (event: MouseEvent<HTMLElement>) => {
+      console.log('[editFile] User confirmed crop');
+      setModalImage('');
+      easyCropRef.current?.onReset();
+
+      const canvas = getCropCanvas(event.target as ShadowRoot);
+      const { type = 'image/jpeg', name = 'cropped.jpg', uid } = file;
+
+      canvas.toBlob(
+        async (croppedBlob) => {
+          if (!croppedBlob) return;
+          const newFile = new File([croppedBlob], name, { type });
+          Object.assign(newFile, { uid });
+          console.log('[editFile] Final cropped file:', newFile);
+
+          cb.current.onModalOk?.(newFile);
+        },
+        type,
+        quality
+      );
+    };
+  };
+
+  // 🥇 Option A: Use originFileObj (best case, no CORS issue)
+  if ('originFileObj' in file && file.originFileObj instanceof Blob) {
+    console.log('[editFile] Using originFileObj for cropping');
+    reader.readAsDataURL(file.originFileObj);
+    return;
+  }
+
+  // 🥈 Option B: Fallback to fetch image URL
+  const imageUrl = (file as UploadFile).url || (file as UploadFile).thumbUrl;
+  if (!imageUrl) {
+    console.warn('[editFile] No URL available for file:', file);
+    return;
+  }
+
+  console.log('[editFile] Fetching image blob from URL:', imageUrl);
+  fetch(imageUrl)
+    .then((res) => {
+      if (!res.ok) throw new Error('Network response was not ok');
+      return res.blob();
+    })
+    .then((blob) => {
+      console.log('[editFile] Blob fetched successfully');
+      reader.readAsDataURL(blob);
+    })
+    .catch((err) => {
+      console.error('[editFile] Failed to fetch image blob:', err);
+    });
+}, [getCropCanvas, quality]);
+
+
+
+
+  useImperativeHandle(ref, () => ({
+  editFile,
+}), [editFile]);
+
   return (
     <>
       {getNewUpload(children)}
@@ -344,7 +420,6 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
         >
           <EasyCrop
             ref={easyCropRef}
-            cropperRef={cropperRef}
             zoomSlider={zoomSlider}
             zoomSliderProps={zoomSliderProps}
             rotationSlider={rotationSlider}
