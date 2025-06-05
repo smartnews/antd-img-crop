@@ -18,7 +18,7 @@ export type ImgCropProps = {
   showReset?: boolean;
   resetText?: string;
 
-  zoomSliderProps?: SliderBaseProps,
+  zoomSliderProps?: SliderBaseProps;
 
   aspect?: number;
   minZoom?: number;
@@ -27,25 +27,27 @@ export type ImgCropProps = {
   maxAspect?: number;
   cropShape?: 'rect' | 'round';
   showGrid?: boolean;
-  cropperProps?: Partial<Omit<
-    CropperProps,
-    | 'image'
-    | 'crop'
-    | 'zoom'
-    | 'rotation'
-    | 'aspect'
-    | 'minZoom'
-    | 'maxZoom'
-    | 'minAspect'
-    | 'maxAspect'
-    | 'zoomWithScroll'
-    | 'cropShape'
-    | 'showGrid'
-    | 'onCropChange'
-    | 'onZoomChange'
-    | 'onRotationChange'
-    | 'onCropComplete'
-  >>;
+  cropperProps?: Partial<
+    Omit<
+      CropperProps,
+      | 'image'
+      | 'crop'
+      | 'zoom'
+      | 'rotation'
+      | 'aspect'
+      | 'minZoom'
+      | 'maxZoom'
+      | 'minAspect'
+      | 'maxAspect'
+      | 'zoomWithScroll'
+      | 'cropShape'
+      | 'showGrid'
+      | 'onCropChange'
+      | 'onZoomChange'
+      | 'onRotationChange'
+      | 'onCropComplete'
+    >
+  >;
 
   modalClassName?: string;
   modalTitle?: string;

@@ -3,7 +3,14 @@ import AntModal from 'antd/es/modal';
 import AntUpload from 'antd/es/upload';
 import type { RcFile, UploadFile } from 'antd/es/upload/interface';
 import type { MouseEvent, ReactNode } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import EasyCrop from './EasyCrop';
 import './ImgCrop.css';
 import { PREFIX, ROTATION_INITIAL } from './constants';
@@ -15,7 +22,7 @@ import type {
   ImgCropRef,
 } from './types';
 
-export type { ImgCropRef, ImgCropProps } from './types';
+export type { ImgCropProps, ImgCropRef } from './types';
 
 const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const {
@@ -62,7 +69,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
 
   /**
    * crop
-   * 
+   *
    * Ref to EasyCrop component and utility for cropping canvas from image
    */
   const easyCropRef = useRef<EasyCropRef>(null);
@@ -159,14 +166,14 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
 
   /**
    * upload
-   * 
+   *
    * Modal state and lifecycle hooks
    */
   const [modalImage, setModalImage] = useState('');
   const onCancel = useRef<ModalProps['onCancel']>();
   const onOk = useRef<ModalProps['onOk']>();
 
-    // Helper to run Ant Design's original beforeUpload handler
+  // Helper to run Ant Design's original beforeUpload handler
   const runBeforeUpload = useCallback(
     async ({
       beforeUpload,
@@ -179,26 +186,26 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
       resolve: (parsedFile: BeforeUploadReturnType) => void;
       reject: (rejectErr: BeforeUploadReturnType) => void;
     }) => {
-    const rawFile = file as unknown as File;
+      const rawFile = file as unknown as File;
 
-    if (typeof beforeUpload !== 'function') {
-      resolve(rawFile);
-      return;
-    }
+      if (typeof beforeUpload !== 'function') {
+        resolve(rawFile);
+        return;
+      }
 
-    try {
+      try {
         // https://ant.design/components/upload-cn#api
         // https://github.com/ant-design/ant-design/blob/master/components/upload/Upload.tsx#L152-L178
-      const result = await beforeUpload(file, [file]);
+        const result = await beforeUpload(file, [file]);
 
         if (result === false) {
           resolve(false);
         } else {
           resolve((result !== true && result) || rawFile);
         }
-    } catch (err) {
-      reject(err as BeforeUploadReturnType);
-    }
+      } catch (err) {
+        reject(err as BeforeUploadReturnType);
+      }
     },
     [],
   );
@@ -307,7 +314,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
 
   /**
    * modal
-   * 
+   *
    * Extract modal config props
    */
   const modalBaseProps = useMemo(() => {
@@ -327,54 +334,56 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const title = modalTitle || (isCN ? '编辑图片' : 'Edit image');
   const resetBtnText = resetText || (isCN ? '重置' : 'Reset');
 
-const editFile = useCallback((file: RcFile | UploadFile) => {
+  const editFile = useCallback(
+    (file: RcFile | UploadFile) => {
+      const reader = new FileReader();
 
-  const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') return;
 
-  reader.onload = () => {
-    if (typeof reader.result !== 'string') return;
+        setModalImage(reader.result);
 
-    setModalImage(reader.result);
+        onCancel.current = () => {
+          setModalImage('');
+          easyCropRef.current?.onReset();
+        };
 
-    onCancel.current = () => {
-      setModalImage('');
-      easyCropRef.current?.onReset();
-    };
+        onOk.current = async (event: MouseEvent<HTMLElement>) => {
+          setModalImage('');
+          easyCropRef.current?.onReset();
 
-    onOk.current = async (event: MouseEvent<HTMLElement>) => {
-      setModalImage('');
-      easyCropRef.current?.onReset();
+          const canvas = getCropCanvas(event.target as ShadowRoot);
+          const { type = 'image/jpeg', name = 'cropped.jpg', uid } = file;
 
-      const canvas = getCropCanvas(event.target as ShadowRoot);
-      const { type = 'image/jpeg', name = 'cropped.jpg', uid } = file;
+          canvas.toBlob(
+            async (croppedBlob) => {
+              if (!croppedBlob) return;
+              const newFile = new File([croppedBlob], name, { type });
+              Object.assign(newFile, { uid });
 
-      canvas.toBlob(
-        async (croppedBlob) => {
-          if (!croppedBlob) return;
-          const newFile = new File([croppedBlob], name, { type });
-          Object.assign(newFile, { uid });
+              cb.current.onModalOk?.(newFile);
+            },
+            type,
+            quality,
+          );
+        };
+      };
 
-          cb.current.onModalOk?.(newFile);
-        },
-        type,
-        quality
-      );
-    };
-  };
+      if ('originFileObj' in file && file.originFileObj instanceof Blob) {
+        reader.readAsDataURL(file.originFileObj);
+        return;
+      }
+    },
+    [getCropCanvas, quality],
+  );
 
-  if ('originFileObj' in file && file.originFileObj instanceof Blob) {
-    reader.readAsDataURL(file.originFileObj);
-    return;
-  }
-}, [getCropCanvas, quality]);
-
-
-
-
-
-  useImperativeHandle(ref, () => ({
-  editFile,
-}), [editFile]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      editFile,
+    }),
+    [editFile],
+  );
 
   return (
     <>
