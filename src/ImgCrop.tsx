@@ -334,33 +334,43 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const title = modalTitle || (isCN ? '编辑图片' : 'Edit image');
   const resetBtnText = resetText || (isCN ? '重置' : 'Reset');
 
+  // Exposes `editFile` method to parent via ref, allowing programmatic cropping
   const editFile = useCallback(
     (file: RcFile | UploadFile) => {
       const reader = new FileReader();
 
+      // Once the file is loaded as DataURL, open the crop modal
       reader.onload = () => {
         if (typeof reader.result !== 'string') return;
 
+        // Display modal with the loaded image
         setModalImage(reader.result);
 
+        // Handler: user cancels cropping
         onCancel.current = () => {
           setModalImage('');
           easyCropRef.current?.onReset();
         };
 
+        // Handler: user confirms cropping
         onOk.current = async (event: MouseEvent<HTMLElement>) => {
           setModalImage('');
           easyCropRef.current?.onReset();
 
+          // Get cropped canvas from cropper instance
           const canvas = getCropCanvas(event.target as ShadowRoot);
           const { type = 'image/jpeg', name = 'cropped.jpg', uid } = file;
 
+          // Convert canvas to blob and wrap it as a File
           canvas.toBlob(
             async (croppedBlob) => {
               if (!croppedBlob) return;
               const newFile = new File([croppedBlob], name, { type });
+
+              // Preserve UID so Upload list can replace the old file correctly
               Object.assign(newFile, { uid });
 
+              // Trigger onModalOk callback with cropped file
               cb.current.onModalOk?.(newFile);
             },
             type,
@@ -369,6 +379,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
         };
       };
 
+      // Start loading the file to show it in the crop modal
       if ('originFileObj' in file && file.originFileObj instanceof Blob) {
         reader.readAsDataURL(file.originFileObj);
         return;
@@ -377,6 +388,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
     [getCropCanvas, quality],
   );
 
+  // Expose the editFile method to parent components
   useImperativeHandle(
     ref,
     () => ({
