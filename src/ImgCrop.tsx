@@ -328,7 +328,6 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const resetBtnText = resetText || (isCN ? '重置' : 'Reset');
 
 const editFile = useCallback((file: RcFile | UploadFile) => {
-  console.log('[editFile] Called with file:', file);
 
   const reader = new FileReader();
 
@@ -336,16 +335,13 @@ const editFile = useCallback((file: RcFile | UploadFile) => {
     if (typeof reader.result !== 'string') return;
 
     setModalImage(reader.result);
-    console.log('[editFile] Modal image set');
 
     onCancel.current = () => {
-      console.log('[editFile] User cancelled crop modal');
       setModalImage('');
       easyCropRef.current?.onReset();
     };
 
     onOk.current = async (event: MouseEvent<HTMLElement>) => {
-      console.log('[editFile] User confirmed crop');
       setModalImage('');
       easyCropRef.current?.onReset();
 
@@ -357,7 +353,6 @@ const editFile = useCallback((file: RcFile | UploadFile) => {
           if (!croppedBlob) return;
           const newFile = new File([croppedBlob], name, { type });
           Object.assign(newFile, { uid });
-          console.log('[editFile] Final cropped file:', newFile);
 
           cb.current.onModalOk?.(newFile);
         },
@@ -368,14 +363,9 @@ const editFile = useCallback((file: RcFile | UploadFile) => {
   };
 
   if ('originFileObj' in file && file.originFileObj instanceof Blob) {
-    console.log('[editFile] Using originFileObj for cropping');
     reader.readAsDataURL(file.originFileObj);
     return;
   }
-
-  console.error(
-    '[editFile] Missing originFileObj. This fork expects a blob to be provided by the caller.'
-  );
 }, [getCropCanvas, quality]);
 
 
