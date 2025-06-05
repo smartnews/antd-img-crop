@@ -367,34 +367,17 @@ const editFile = useCallback((file: RcFile | UploadFile) => {
     };
   };
 
-  // 🥇 Option A: Use originFileObj (best case, no CORS issue)
   if ('originFileObj' in file && file.originFileObj instanceof Blob) {
     console.log('[editFile] Using originFileObj for cropping');
     reader.readAsDataURL(file.originFileObj);
     return;
   }
 
-  // 🥈 Option B: Fallback to fetch image URL
-  const imageUrl = (file as UploadFile).url || (file as UploadFile).thumbUrl;
-  if (!imageUrl) {
-    console.warn('[editFile] No URL available for file:', file);
-    return;
-  }
-
-  console.log('[editFile] Fetching image blob from URL:', imageUrl);
-  fetch(imageUrl)
-    .then((res) => {
-      if (!res.ok) throw new Error('Network response was not ok');
-      return res.blob();
-    })
-    .then((blob) => {
-      console.log('[editFile] Blob fetched successfully');
-      reader.readAsDataURL(blob);
-    })
-    .catch((err) => {
-      console.error('[editFile] Failed to fetch image blob:', err);
-    });
+  console.error(
+    '[editFile] Missing originFileObj. This fork expects a blob to be provided by the caller.'
+  );
 }, [getCropCanvas, quality]);
+
 
 
 
