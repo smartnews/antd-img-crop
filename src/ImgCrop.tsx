@@ -181,7 +181,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
       resolve,
       reject,
     }: {
-      beforeUpload: BeforeUpload;
+      beforeUpload: BeforeUpload | undefined;
       file: RcFile;
       resolve: (parsedFile: BeforeUploadReturnType) => void;
       reject: (rejectErr: BeforeUploadReturnType) => void;
@@ -339,20 +339,20 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
     (file: RcFile | UploadFile) => {
       const reader = new FileReader();
 
-      // Once the file is loaded as DataURL, open the crop modal
+      // Once file is read, display it in the crop modal
       reader.onload = () => {
         if (typeof reader.result !== 'string') return;
 
         // Display modal with the loaded image
         setModalImage(reader.result);
 
-        // Handler: user cancels cropping
+        // Define modal cancel behavior
         onCancel.current = () => {
           setModalImage('');
           easyCropRef.current?.onReset();
         };
 
-        // Handler: user confirms cropping
+        // Define modal confirm behavior
         onOk.current = async (event: MouseEvent<HTMLElement>) => {
           setModalImage('');
           easyCropRef.current?.onReset();
@@ -369,9 +369,19 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
 
               // Preserve UID so Upload list can replace the old file correctly
               Object.assign(newFile, { uid });
+              Object.assign(newFile, { "_fromManualEdit": true });
 
-              // Trigger onModalOk callback with cropped file
-              cb.current.onModalOk?.(newFile);
+              runBeforeUpload({
+                beforeUpload: undefined, // always provide a function
+                file: newFile as RcFile,
+                resolve: (file) => {
+                  console.log('Crop successful:', file);
+                  cb.current.onModalOk?.(file);
+                },
+                reject: (err) => {
+                  console.error('Crop rejected during runBeforeUpload:', err);
+                },
+              });
             },
             type,
             quality,
@@ -379,11 +389,13 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
         };
       };
 
-      // Start loading the file to show it in the crop modal
+      // Read file data
       if ('originFileObj' in file && file.originFileObj instanceof Blob) {
         reader.readAsDataURL(file.originFileObj);
         return;
       }
+
+      reader.readAsDataURL(file as RcFile);
     },
     [getCropCanvas, quality],
   );
