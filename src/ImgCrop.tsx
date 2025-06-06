@@ -337,65 +337,17 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   // Exposes `editFile` method to parent via ref, allowing programmatic cropping
   const editFile = useCallback(
     (file: RcFile | UploadFile) => {
-      const reader = new FileReader();
-
-      // Once file is read, display it in the crop modal
-      reader.onload = () => {
-        if (typeof reader.result !== 'string') return;
-
-        // Display modal with the loaded image
-        setModalImage(reader.result);
-
-        // Define modal cancel behavior
-        onCancel.current = () => {
-          setModalImage('');
-          easyCropRef.current?.onReset();
-        };
-
-        // Define modal confirm behavior
-        onOk.current = async (event: MouseEvent<HTMLElement>) => {
-          setModalImage('');
-          easyCropRef.current?.onReset();
-
-          // Get cropped canvas from cropper instance
-          const canvas = getCropCanvas(event.target as ShadowRoot);
-          const { type = 'image/jpeg', name = 'cropped.jpg', uid } = file;
-
-          // Convert canvas to blob and wrap it as a File
-          canvas.toBlob(
-            async (croppedBlob) => {
-              if (!croppedBlob) return;
-              const newFile = new File([croppedBlob], name, { type });
-
-              // Preserve UID so Upload list can replace the old file correctly
-              Object.assign(newFile, { uid });
-              Object.assign(newFile, { "_fromManualEdit": true });
-
-              runBeforeUpload({
-                beforeUpload: undefined, // always provide a function
-                file: newFile as RcFile,
-                resolve: (file) => {
-                  console.log('Crop successful:', file);
-                  cb.current.onModalOk?.(file);
-                },
-                reject: (err) => {
-                  console.error('Crop rejected during runBeforeUpload:', err);
-                },
-              });
-            },
-            type,
-            quality,
-          );
-        };
-      };
-
-      // Read file data
-      if ('originFileObj' in file && file.originFileObj instanceof Blob) {
-        reader.readAsDataURL(file.originFileObj);
-        return;
-      }
-
-      reader.readAsDataURL(file as RcFile);
+      runBeforeUpload({
+        beforeUpload: cb.current.beforeCrop, // always provide a function
+        file: file as RcFile,
+        resolve: (file) => {
+          console.log('Crop successful:', file);
+          cb.current.onModalOk?.(file);
+        },
+        reject: (err) => {
+          console.error('Crop rejected during runBeforeUpload:', err);
+        },
+      });
     },
     [getCropCanvas, quality],
   );
