@@ -188,22 +188,36 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
     }) => {
       const rawFile = file as unknown as File;
 
+      console.debug('Running beforeUpload for file:', rawFile);
+
       if (typeof beforeUpload !== 'function') {
+        console.debug(
+          'Running beforeUpload resolving because before is not a function',
+        );
         resolve(rawFile);
         return;
       }
 
       try {
+        console.debug('Running beforeUpload try');
         // https://ant.design/components/upload-cn#api
         // https://github.com/ant-design/ant-design/blob/master/components/upload/Upload.tsx#L152-L178
         const result = await beforeUpload(file, [file]);
 
+        console.debug('Running beforeUpload try result: ', result);
+
         if (result === false) {
+          console.debug('Running beforeUpload try result is false');
           resolve(false);
         } else {
+          console.debug(
+            'Running beforeUpload try result is not false, resolving with :',
+            (result !== true && result) || rawFile,
+          );
           resolve((result !== true && result) || rawFile);
         }
       } catch (err) {
+        console.debug('Running beforeUpload try error caught:', err);
         reject(err as BeforeUploadReturnType);
       }
     },
@@ -214,20 +228,40 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const getNewBeforeUpload = useCallback(
     (beforeUpload: BeforeUpload) => {
       return ((file, fileList) => {
+        console.debug('getNewBeforeUpload called with file:', file);
+        console.debug('getNewBeforeUpload called with fileList:', fileList);
         return new Promise(async (resolve, reject) => {
           let processedFile = file;
+          console.debug(
+            'beginning of the promise, processedFile:',
+            processedFile,
+          );
 
           // Optional pre-crop hook
           if (typeof cb.current.beforeCrop === 'function') {
+            console.debug('before crop is a function, running it');
             try {
+              console.debug(
+                'TRY: Running beforeCrop with file:',
+                file,
+                'and fileList:',
+                fileList,
+              );
               const result = await cb.current.beforeCrop(file, fileList);
+              console.debug('beforeCrop awaited, result:', result);
               if (result === false) {
+                console.debug(
+                  'beforeCrop returned false, resolving with LIST_IGNORE',
+                );
                 return runBeforeUpload({ beforeUpload, file, resolve, reject }); // not open modal
               }
               if (result !== true) {
                 processedFile = (result as unknown as RcFile) || file; // will open modal
+                console.debug('modal should open with processed file:', result);
+                console.debug('processedFile:', processedFile);
               }
             } catch (err) {
+              console.debug('beforeCrop error caught:', err);
               return runBeforeUpload({ beforeUpload, file, resolve, reject }); // not open modal
             }
           }
@@ -235,10 +269,12 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
           // Read file to show in modal
           const reader = new FileReader();
           reader.addEventListener('load', () => {
+            console.debug('FileReader loaded:', reader.result);
             if (typeof reader.result === 'string') {
               setModalImage(reader.result); // Trigger modal open
             }
           });
+          console.debug('Triggering FileReader...');
           reader.readAsDataURL(processedFile as unknown as Blob);
 
           // Define modal handlers
@@ -264,21 +300,37 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
             easyCropRef.current!.onReset();
 
             const canvas = getCropCanvas(event.target as ShadowRoot);
+            console.debug('Canvas created from crop:', canvas);
+            console.debug('processedFile after canvas:', processedFile);
             const { type, name, uid } = processedFile as UploadFile;
 
             canvas.toBlob(
               async (blob) => {
                 const newFile = new File([blob as BlobPart], name, { type });
                 Object.assign(newFile, { uid });
+                if ((file as any)._fromManualEdit === true) {
+                  // If this was manually edited, we need to put the status as "done"
+                  console.debug(
+                    'Manual edit: Canvas to blob, newFile:',
+                    newFile,
+                  );
+                  console.debug('Manual edit: Canvas to blob, file:', file);
+                  Object.assign(newFile, {
+                    status: 'done', // Set status to done to avoid errors
+                  });
+                }
+                console.debug('Canvas to blob, newFile:', newFile);
 
                 runBeforeUpload({
                   beforeUpload,
                   file: newFile as unknown as RcFile,
                   resolve: (file) => {
+                    console.debug('Modal confirmed, file cropped:', file);
                     resolve(file);
                     cb.current.onModalOk?.(file);
                   },
                   reject: (err) => {
+                    console.debug('Modal reject, err:', err);
                     reject(err);
                     cb.current.onModalOk?.(err);
                   },
@@ -337,19 +389,19 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   // Exposes `editFile` method to parent via ref, allowing programmatic cropping
   const editFile = useCallback(
     (file: RcFile | UploadFile) => {
-      runBeforeUpload({
-        beforeUpload: cb.current.beforeCrop, // always provide a function
-        file: file as RcFile,
-        resolve: (file) => {
-          console.log('Crop successful:', file);
-          cb.current.onModalOk?.(file);
-        },
-        reject: (err) => {
-          console.error('Crop rejected during runBeforeUpload:', err);
-        },
+      // Grab the Upload component's original beforeUpload
+      const upload = children as React.ReactElement<any>;
+      const fullBeforeUpload = getNewBeforeUpload(upload.props.beforeUpload);
+
+      Object.assign(file, {
+        uid: `rc-upload-${Date.now()}`,
+        _fromManualEdit: true,
       });
+
+      // Trigger the full crop flow including modal
+      fullBeforeUpload(file as RcFile, [file as RcFile]);
     },
-    [getCropCanvas, quality],
+    [children, getNewBeforeUpload],
   );
 
   // Expose the editFile method to parent components
