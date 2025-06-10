@@ -1,7 +1,8 @@
 import type { ModalProps, UploadProps } from 'antd';
 import type { SliderBaseProps } from 'antd/es/slider';
-import type { ForwardedRef, MutableRefObject } from 'react';
-import type { default as Cropper, CropperProps } from 'react-easy-crop';
+import type { RcFile, UploadFile } from 'antd/es/upload/interface';
+import type { MutableRefObject } from 'react';
+import type { CropperProps } from 'react-easy-crop';
 import type { Area } from 'react-easy-crop/types';
 
 export type BeforeUpload = Exclude<UploadProps['beforeUpload'], undefined>;
@@ -17,7 +18,7 @@ export type ImgCropProps = {
   showReset?: boolean;
   resetText?: string;
 
-  zoomSliderProps?: SliderBaseProps,
+  zoomSliderProps?: SliderBaseProps;
 
   aspect?: number;
   minZoom?: number;
@@ -26,25 +27,27 @@ export type ImgCropProps = {
   maxAspect?: number;
   cropShape?: 'rect' | 'round';
   showGrid?: boolean;
-  cropperProps?: Partial<Omit<
-    CropperProps,
-    | 'image'
-    | 'crop'
-    | 'zoom'
-    | 'rotation'
-    | 'aspect'
-    | 'minZoom'
-    | 'maxZoom'
-    | 'minAspect'
-    | 'maxAspect'
-    | 'zoomWithScroll'
-    | 'cropShape'
-    | 'showGrid'
-    | 'onCropChange'
-    | 'onZoomChange'
-    | 'onRotationChange'
-    | 'onCropComplete'
-  >>;
+  cropperProps?: Partial<
+    Omit<
+      CropperProps,
+      | 'image'
+      | 'crop'
+      | 'zoom'
+      | 'rotation'
+      | 'aspect'
+      | 'minZoom'
+      | 'maxZoom'
+      | 'minAspect'
+      | 'maxAspect'
+      | 'zoomWithScroll'
+      | 'cropShape'
+      | 'showGrid'
+      | 'onCropChange'
+      | 'onZoomChange'
+      | 'onRotationChange'
+      | 'onCropComplete'
+    >
+  >;
 
   modalClassName?: string;
   modalTitle?: string;
@@ -80,7 +83,6 @@ export type EasyCropRef = {
 };
 
 export type EasyCropProps = {
-  cropperRef: ForwardedRef<Cropper>;
   modalImage: string;
 } & Required<
   Pick<
@@ -100,3 +102,7 @@ export type EasyCropProps = {
   >
 > &
   Pick<ImgCropProps, 'cropperProps'> & { resetBtnText: string };
+
+export type ImgCropRef = {
+  editFile: (file: RcFile | UploadFile) => void;
+};

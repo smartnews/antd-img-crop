@@ -3,8 +3,14 @@ import AntModal from 'antd/es/modal';
 import AntUpload from 'antd/es/upload';
 import type { RcFile, UploadFile } from 'antd/es/upload/interface';
 import type { MouseEvent, ReactNode } from 'react';
-import { forwardRef, useCallback, useMemo, useRef, useState } from 'react';
-import type CropperRef from 'react-easy-crop';
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import EasyCrop from './EasyCrop';
 import './ImgCrop.css';
 import { PREFIX, ROTATION_INITIAL } from './constants';
@@ -13,11 +19,12 @@ import type {
   BeforeUploadReturnType,
   EasyCropRef,
   ImgCropProps,
+  ImgCropRef,
 } from './types';
 
-export type { ImgCropProps } from './types';
+export type { ImgCropProps, ImgCropRef } from './types';
 
-const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
+const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
   const {
     quality = 0.4,
     fillColor = 'white',
@@ -52,6 +59,7 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
     children,
   } = props;
 
+  // Store latest callback props in a ref to avoid stale closures
   const cb = useRef<
     Pick<ImgCropProps, 'onModalOk' | 'onModalCancel' | 'beforeCrop'>
   >({});
@@ -61,6 +69,8 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
 
   /**
    * crop
+   *
+   * Ref to EasyCrop component and utility for cropping canvas from image
    */
   const easyCropRef = useRef<EasyCropRef>(null);
   const getCropCanvas = useCallback(
@@ -83,6 +93,7 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
         y: cropY,
       } = easyCropRef.current!.cropPixelsRef.current;
 
+      // If image is rotated, we draw it in a larger square canvas, then crop the relevant section
       if (
         rotationSlider &&
         easyCropRef.current!.rotation !== ROTATION_INITIAL
@@ -129,6 +140,7 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
         canvas.height = cropHeight;
         ctx.putImageData(imgData, -cropX, -cropY);
       } else {
+        // Standard (non-rotated) image crop
         canvas.width = cropWidth;
         canvas.height = cropHeight;
         ctx.fillStyle = fillColor;
@@ -154,11 +166,14 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
 
   /**
    * upload
+   *
+   * Modal state and lifecycle hooks
    */
   const [modalImage, setModalImage] = useState('');
   const onCancel = useRef<ModalProps['onCancel']>();
   const onOk = useRef<ModalProps['onOk']>();
 
+  // Helper to run Ant Design's original beforeUpload handler
   const runBeforeUpload = useCallback(
     async ({
       beforeUpload,
@@ -166,7 +181,7 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
       resolve,
       reject,
     }: {
-      beforeUpload: BeforeUpload;
+      beforeUpload: BeforeUpload | undefined;
       file: RcFile;
       resolve: (parsedFile: BeforeUploadReturnType) => void;
       reject: (rejectErr: BeforeUploadReturnType) => void;
@@ -195,12 +210,14 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
     [],
   );
 
+  // Compose a beforeUpload handler that includes cropper modal logic
   const getNewBeforeUpload = useCallback(
     (beforeUpload: BeforeUpload) => {
       return ((file, fileList) => {
         return new Promise(async (resolve, reject) => {
           let processedFile = file;
 
+          // Optional pre-crop hook
           if (typeof cb.current.beforeCrop === 'function') {
             try {
               const result = await cb.current.beforeCrop(file, fileList);
@@ -215,16 +232,16 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
             }
           }
 
-          // read file
+          // Read file to show in modal
           const reader = new FileReader();
           reader.addEventListener('load', () => {
             if (typeof reader.result === 'string') {
-              setModalImage(reader.result); // open modal
+              setModalImage(reader.result); // Trigger modal open
             }
           });
           reader.readAsDataURL(processedFile as unknown as Blob);
 
-          // on modal cancel
+          // Define modal handlers
           onCancel.current = () => {
             setModalImage('');
             easyCropRef.current!.onReset();
@@ -253,6 +270,12 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
               async (blob) => {
                 const newFile = new File([blob as BlobPart], name, { type });
                 Object.assign(newFile, { uid });
+                if ((file as any)._fromManualEdit === true) {
+                  // If this was manually edited, we need to put the status as "done"
+                  Object.assign(newFile, {
+                    status: 'done', // Set status to done to avoid errors
+                  });
+                }
 
                 runBeforeUpload({
                   beforeUpload,
@@ -277,6 +300,7 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
     [getCropCanvas, quality, runBeforeUpload],
   );
 
+  // Enhance Upload component with custom beforeUpload
   const getNewUpload = useCallback(
     (children: ReactNode) => {
       const upload = Array.isArray(children) ? children[0] : children;
@@ -296,6 +320,8 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
 
   /**
    * modal
+   *
+   * Extract modal config props
    */
   const modalBaseProps = useMemo(() => {
     const obj: Pick<ModalProps, 'width' | 'okText' | 'cancelText'> = {};
@@ -314,6 +340,34 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
   const title = modalTitle || (isCN ? '编辑图片' : 'Edit image');
   const resetBtnText = resetText || (isCN ? '重置' : 'Reset');
 
+  // Exposes `editFile` method to parent via ref, allowing programmatic cropping
+  const editFile = useCallback(
+    (file: RcFile | UploadFile) => {
+      // Grab the Upload component's original beforeUpload
+      const upload = children as React.ReactElement<any>;
+      const fullBeforeUpload = getNewBeforeUpload(upload.props.beforeUpload);
+
+      // Make sure to assign a different uid to avoid conflicts
+      Object.assign(file, {
+        uid: `rc-upload-${Date.now()}`,
+        _fromManualEdit: true,
+      });
+
+      // Trigger the full crop flow including modal
+      fullBeforeUpload(file as RcFile, [file as RcFile]);
+    },
+    [children, getNewBeforeUpload],
+  );
+
+  // Expose the editFile method to parent components
+  useImperativeHandle(
+    ref,
+    () => ({
+      editFile,
+    }),
+    [editFile],
+  );
+
   return (
     <>
       {getNewUpload(children)}
@@ -331,7 +385,6 @@ const ImgCrop = forwardRef<CropperRef, ImgCropProps>((props, cropperRef) => {
         >
           <EasyCrop
             ref={easyCropRef}
-            cropperRef={cropperRef}
             zoomSlider={zoomSlider}
             zoomSliderProps={zoomSliderProps}
             rotationSlider={rotationSlider}
