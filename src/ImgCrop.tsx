@@ -274,6 +274,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
                   // If this was manually edited, we need to put the status as "done"
                   Object.assign(newFile, {
                     status: 'done', // Set status to done to avoid errors
+                    _fromManualEdit: true,
                   });
                 }
 
