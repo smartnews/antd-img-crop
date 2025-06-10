@@ -347,6 +347,7 @@ const ImgCrop = forwardRef<ImgCropRef, ImgCropProps>((props, ref) => {
       const upload = children as React.ReactElement<any>;
       const fullBeforeUpload = getNewBeforeUpload(upload.props.beforeUpload);
 
+      // Make sure to assign a different uid to avoid conflicts
       Object.assign(file, {
         uid: `rc-upload-${Date.now()}`,
         _fromManualEdit: true,
